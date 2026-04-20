@@ -141,11 +141,10 @@ select{width:100%;padding:8px 10px;border:0.5px solid #e0e0e0;border-radius:8px;
         <div class="chip" data-val="Extra Large" onclick="toggle(this,'size')">Extra large</div>
       </div>
       <hr class="divider">
-      <p class="section-title">Price range</p>
-      <div class="chip-group" id="chips-price">
-        <div class="chip" data-val="Low" onclick="toggle(this,'price')">Low</div>
-        <div class="chip" data-val="Mid" onclick="toggle(this,'price')">Mid</div>
-        <div class="chip" data-val="High" onclick="toggle(this,'price')">High</div>
+      <p class="section-title">Price</p>
+      <div style="position:relative">
+        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;color:#aaa;pointer-events:none">Rp</span>
+        <input type="text" id="f-price" placeholder="0" oninput="formatRupiah(this)" style="padding-left:36px">
       </div>
       <hr class="divider">
       <p class="section-title">Colors</p>
@@ -184,10 +183,8 @@ select{width:100%;padding:8px 10px;border:0.5px solid #e0e0e0;border-radius:8px;
           <option value="">All sizes</option>
           <option>Small</option><option>Medium</option><option>Large</option><option>Extra Large</option>
         </select>
-        <select id="fil-price" onchange="renderList()">
-          <option value="">All prices</option>
-          <option>Low</option><option>Mid</option><option>High</option>
-        </select>
+        <input type="text" id="fil-price-min" placeholder="Min Rp" oninput="formatRupiahFilter(this);renderList()" style="padding:8px 10px;border:0.5px solid #e0e0e0;border-radius:8px;font-size:13px;background:#fff;color:#555;outline:none;width:100%;font-family:inherit">
+        <input type="text" id="fil-price-max" placeholder="Max Rp" oninput="formatRupiahFilter(this);renderList()" style="padding:8px 10px;border:0.5px solid #e0e0e0;border-radius:8px;font-size:13px;background:#fff;color:#555;outline:none;width:100%;font-family:inherit">
         <select id="fil-color" onchange="renderList()"><option value="">All colors</option></select>
         <select id="fil-variant" onchange="renderList()"><option value="">All variants</option></select>
       </div>
@@ -217,7 +214,7 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwZPA2aQkmg4ao4PtBy4c0B
 
 // ─── STATE ───────────────────────────────────────────────────
 let products = [];
-let sel = {seg:'',style:'',size:'',price:''};
+let sel = {seg:'',style:'',size:''};
 let sortDir = 'az';
 let colorIdx = 0, variantIdx = 0;
 let cbCounter = 0;
@@ -290,10 +287,13 @@ async function fetchProducts() {
 // ─── SAVE PRODUCT ────────────────────────────────────────────
 async function saveProduct() {
   const name = document.getElementById('f-name').value.trim();
-  if (!name)      { showToast('Please enter a product name'); return; }
-  if (!sel.seg)   { showToast('Please select a market segment'); return; }
-  if (!sel.size)  { showToast('Please select a size'); return; }
-  if (!sel.price) { showToast('Please select a price range'); return; }
+  if (!name)     { showToast('Please enter a product name'); return; }
+  if (!sel.seg)  { showToast('Please select a market segment'); return; }
+  if (!sel.size) { showToast('Please select a size'); return; }
+
+  const priceRaw = document.getElementById('f-price').value.replace(/\./g, '').trim();
+  if (!priceRaw) { showToast('Please enter a price'); return; }
+  const price = parseInt(priceRaw) || 0;
 
   const colors      = getColors();
   const variants    = getVariants();
@@ -308,7 +308,7 @@ async function saveProduct() {
     const result = await jsonp(GAS_URL, {
       action: 'add', name,
       desc:     document.getElementById('f-desc').value.trim(),
-      seg:      sel.seg, style: sel.style, size: sel.size, price: sel.price,
+      seg:      sel.seg, style: sel.style, size: sel.size, price: price,
       colors:   colorsStr, variants: variantsStr
     });
     if (result.error) throw new Error(result.error);
@@ -316,7 +316,7 @@ async function saveProduct() {
     products.push({
       id: result.id, name,
       desc: document.getElementById('f-desc').value.trim(),
-      seg: sel.seg, style: sel.style, size: sel.size, price: sel.price,
+      seg: sel.seg, style: sel.style, size: sel.size, price: price,
       colors, variants, date: result.date
     });
 
@@ -407,7 +407,8 @@ function resetForm() {
   document.getElementById('f-name').value = '';
   document.getElementById('f-desc').value = '';
   document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
-  sel = {seg:'',style:'',size:'',price:''};
+  document.getElementById('f-price').value = '';
+  sel = {seg:'',style:'',size:''};
   document.getElementById('color-list').innerHTML = '';
   document.getElementById('variant-list').innerHTML = '';
   addColor(); addVariant();
@@ -437,10 +438,29 @@ function setSort(dir) {
   renderList();
 }
 
+function formatRupiah(el) {
+  let val = el.value.replace(/\D/g, '');
+  el.value = val ? parseInt(val).toLocaleString('id-ID') : '';
+}
+function formatRupiahFilter(el) {
+  let val = el.value.replace(/\D/g, '');
+  el.value = val ? parseInt(val).toLocaleString('id-ID') : '';
+}
+function parseRupiah(str) {
+  if (!str) return null;
+  const n = parseInt(str.replace(/\./g, '').replace(/,/g, ''));
+  return isNaN(n) ? null : n;
+}
+function formatRupiahDisplay(num) {
+  return 'Rp\u00a0' + parseInt(num).toLocaleString('id-ID');
+}
+
 function resetFilters() {
-  ['fil-seg','fil-style','fil-size','fil-price','fil-color','fil-variant'].forEach(id => {
+  ['fil-seg','fil-style','fil-size','fil-color','fil-variant'].forEach(id => {
     document.getElementById(id).value = '';
   });
+  document.getElementById('fil-price-min').value = '';
+  document.getElementById('fil-price-max').value = '';
   document.getElementById('search-input').value = '';
   renderList();
 }
@@ -449,15 +469,18 @@ function getFilteredList() {
   const seg     = document.getElementById('fil-seg').value;
   const style   = document.getElementById('fil-style').value;
   const size    = document.getElementById('fil-size').value;
-  const price   = document.getElementById('fil-price').value;
+  const priceMin = parseRupiah(document.getElementById('fil-price-min').value);
+  const priceMax = parseRupiah(document.getElementById('fil-price-max').value);
   const color   = document.getElementById('fil-color').value;
   const variant = document.getElementById('fil-variant').value;
   const q       = document.getElementById('search-input').value.toLowerCase();
   return products.filter(p => {
+    const pPrice = parseInt(p.price) || 0;
     if (seg     && p.seg   !== seg)                        return false;
     if (style   && p.style !== style)                      return false;
     if (size    && p.size  !== size)                       return false;
-    if (price   && p.price !== price)                      return false;
+    if (priceMin !== null && pPrice < priceMin)            return false;
+    if (priceMax !== null && pPrice > priceMax)            return false;
     if (color   && !p.colors.some(c => c.name === color)) return false;
     if (variant && !p.variants.includes(variant))          return false;
     if (q       && !p.name.toLowerCase().includes(q))     return false;
@@ -495,7 +518,7 @@ function renderList() {
           <span class="tag tag-seg">${p.seg}</span>
           ${p.style ? `<span class="tag tag-style">${p.style}</span>` : ''}
           <span class="tag tag-size">${p.size}</span>
-          <span class="tag tag-price">${p.price} price</span>
+          <span class="tag tag-price">${formatRupiahDisplay(p.price)}</span>
         </div>
         <p class="prod-meta" style="margin-top:6px">${colorNames}${varStr ? ' &nbsp;|&nbsp; ' + varStr : ''}</p>
         <p class="prod-meta" style="margin-top:2px">Added ${p.date}</p>
@@ -509,7 +532,7 @@ function exportExcel() {
   if (!products.length) { showToast('No products to export'); return; }
   const rows = products.map(p => ({
     'Product Name': p.name, 'Description': p.desc,
-    'Segment': p.seg, 'Style': p.style, 'Size': p.size, 'Price Range': p.price,
+    'Segment': p.seg, 'Style': p.style, 'Size': p.size, 'Price (Rp)': p.price,
     'Colors': p.colors.map(c => c.name + ' (' + c.hex + ')').join(', '),
     'Color Hex Codes': p.colors.map(c => c.hex).join(', '),
     'Variants': p.variants.join(', '), 'Date Added': p.date
