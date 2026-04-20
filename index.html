@@ -74,11 +74,6 @@ select{width:100%;padding:8px 10px;border:0.5px solid #e0e0e0;border-radius:8px;
 .export-btn{padding:8px 14px;border:0.5px solid #e0e0e0;border-radius:8px;background:#fff;color:#555;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.12s;display:inline-flex;align-items:center;gap:6px}
 .export-btn:hover{border-color:#aaa;color:#1a1a1a}
 .top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
-.setup-banner{background:#fffbeb;border:0.5px solid #fcd34d;border-radius:12px;padding:1.25rem;margin-bottom:1rem;font-size:13px;line-height:1.7;color:#92400e}
-.setup-banner strong{display:block;margin-bottom:6px;font-size:14px;color:#78350f}
-.url-input-row{display:flex;gap:8px;margin-top:10px}
-.url-input-row input{flex:1;padding:8px 12px;border:0.5px solid #fcd34d;border-radius:8px;font-size:13px;outline:none;background:#fff}
-.url-save-btn{padding:8px 14px;border:none;border-radius:8px;background:#1a1a1a;color:#fff;font-size:13px;cursor:pointer;white-space:nowrap}
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite}
 .spinner-dark{border-color:rgba(0,0,0,0.15);border-top-color:#555}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -99,16 +94,6 @@ select{width:100%;padding:8px 10px;border:0.5px solid #e0e0e0;border-radius:8px;
         <span id="sync-text" style="font-size:12px">Connecting...</span>
       </span>
     </p>
-  </div>
-
-  <div class="setup-banner" id="setup-banner" style="display:none">
-    <strong>⚙️ Setup — Hubungkan ke Google Sheets</strong>
-    Paste URL Web App dari Google Apps Script kamu. Pastikan sudah di-deploy ulang setelah update <code>Code.gs</code>.
-    <div class="url-input-row">
-      <input type="text" id="gas-url-input" placeholder="https://script.google.com/macros/s/...../exec">
-      <button class="url-save-btn" onclick="saveGasUrl()">Simpan</button>
-    </div>
-    <p style="margin-top:8px;font-size:12px;color:#b45309">Sudah punya URL tapi masih error? Klik <a href="#" onclick="clearAndReset()" style="color:#92400e">ganti URL</a>.</p>
   </div>
 
   <div class="nav">
@@ -227,8 +212,10 @@ select{width:100%;padding:8px 10px;border:0.5px solid #e0e0e0;border-radius:8px;
 <div class="toast" id="toast"></div>
 
 <script>
-// ─── STATE ──────────────────────────────────────────────────
-let GAS_URL = localStorage.getItem('guimauve_gas_url') || '';
+// ─── CONFIG — hardcoded, auto-connect di semua device ────────
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwZPA2aQkmg4ao4PtBy4c0BbWpAn-eyvbMzFcrr4W3N-mESRtUnD7d5_rluJyFq1hkG/exec';
+
+// ─── STATE ───────────────────────────────────────────────────
 let products = [];
 let sel = {seg:'',style:'',size:'',price:''};
 let sortDir = 'az';
@@ -237,33 +224,10 @@ let cbCounter = 0;
 
 // ─── INIT ────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-  addColor(); addVariant();
-  if (!GAS_URL) {
-    document.getElementById('setup-banner').style.display = 'block';
-    setSyncStatus('offline', 'Not connected');
-  } else {
-    fetchProducts();
-  }
-});
-
-function saveGasUrl() {
-  const url = document.getElementById('gas-url-input').value.trim();
-  if (!url.startsWith('https://script.google.com')) {
-    showToast('URL tidak valid'); return;
-  }
-  GAS_URL = url;
-  localStorage.setItem('guimauve_gas_url', url);
-  document.getElementById('setup-banner').style.display = 'none';
+  addColor();
+  addVariant();
   fetchProducts();
-}
-
-function clearAndReset() {
-  localStorage.removeItem('guimauve_gas_url');
-  GAS_URL = '';
-  document.getElementById('gas-url-input').value = '';
-  document.getElementById('setup-banner').style.display = 'block';
-  setSyncStatus('offline', 'Not connected');
-}
+});
 
 // ─── SYNC STATUS ─────────────────────────────────────────────
 function setSyncStatus(state, text) {
@@ -274,8 +238,7 @@ function setSyncStatus(state, text) {
   document.getElementById('sync-text').textContent = text;
 }
 
-// ─── JSONP HELPER ────────────────────────────────────────────
-// Gunakan JSONP untuk bypass CORS — fetch biasa diblokir GAS dari domain eksternal
+// ─── JSONP — bypass CORS ─────────────────────────────────────
 function jsonp(url, params) {
   return new Promise((resolve, reject) => {
     const cbName = '__gcb' + (cbCounter++);
@@ -299,7 +262,7 @@ function jsonp(url, params) {
       clearTimeout(timeout);
       delete window[cbName];
       script.remove();
-      reject(new Error('Script load error — cek URL dan pastikan GAS sudah di-deploy ulang'));
+      reject(new Error('Gagal terhubung ke Google Sheets'));
     };
     document.head.appendChild(script);
   });
@@ -307,7 +270,6 @@ function jsonp(url, params) {
 
 // ─── FETCH PRODUCTS ──────────────────────────────────────────
 async function fetchProducts() {
-  if (!GAS_URL) return;
   const el = document.getElementById('product-list');
   el.innerHTML = '<div class="loading-row"><div class="spinner spinner-dark"></div>&nbsp;Loading from Google Sheets...</div>';
   setSyncStatus('offline', 'Loading...');
@@ -320,22 +282,21 @@ async function fetchProducts() {
     renderList();
     setSyncStatus('online', 'Connected · ' + products.length + ' products');
   } catch (err) {
-    el.innerHTML = `<div class="empty"><p style="font-size:28px;margin-bottom:10px">⚠️</p><p>Gagal memuat data.</p><p style="font-size:12px;margin-top:4px;color:#ccc">${err.message}</p><button class="add-btn" style="margin:12px auto 0" onclick="clearAndReset()">Ganti URL</button></div>`;
+    el.innerHTML = `<div class="empty"><p style="font-size:28px;margin-bottom:10px">⚠️</p><p>Gagal memuat data.</p><p style="font-size:12px;margin-top:4px;color:#ccc">${err.message}</p></div>`;
     setSyncStatus('error', 'Connection error');
   }
 }
 
 // ─── SAVE PRODUCT ────────────────────────────────────────────
 async function saveProduct() {
-  if (!GAS_URL) { showToast('Setup URL dulu!'); return; }
   const name = document.getElementById('f-name').value.trim();
-  if (!name) { showToast('Please enter a product name'); return; }
+  if (!name)      { showToast('Please enter a product name'); return; }
   if (!sel.seg)   { showToast('Please select a market segment'); return; }
   if (!sel.size)  { showToast('Please select a size'); return; }
   if (!sel.price) { showToast('Please select a price range'); return; }
 
-  const colors   = getColors();
-  const variants = getVariants();
+  const colors      = getColors();
+  const variants    = getVariants();
   const colorsStr   = colors.map(c => c.name + '|' + c.hex).join(',');
   const variantsStr = variants.join(',');
 
@@ -352,10 +313,12 @@ async function saveProduct() {
     });
     if (result.error) throw new Error(result.error);
 
-    products.push({ id: result.id, name,
+    products.push({
+      id: result.id, name,
       desc: document.getElementById('f-desc').value.trim(),
       seg: sel.seg, style: sel.style, size: sel.size, price: sel.price,
-      colors, variants, date: result.date });
+      colors, variants, date: result.date
+    });
 
     updateCountNav();
     resetForm();
@@ -371,7 +334,6 @@ async function saveProduct() {
 
 // ─── DELETE PRODUCT ──────────────────────────────────────────
 async function deleteProduct(id) {
-  if (!GAS_URL) return;
   const btn = document.getElementById('del-' + id);
   if (btn) { btn.disabled = true; btn.textContent = '...'; }
   try {
@@ -424,7 +386,7 @@ function addVariant() {
 
 function getColors() {
   return Array.from(document.querySelectorAll('#color-list .color-row')).map(row => ({
-    hex: row.querySelector('input[type="color"]')?.value || '#cccccc',
+    hex:  row.querySelector('input[type="color"]')?.value || '#cccccc',
     name: row.querySelector('input[type="text"]')?.value.trim() || ''
   })).filter(c => c.name);
 }
@@ -462,7 +424,7 @@ function updateColorVariantFilters() {
   const cSel = document.getElementById('fil-color');
   const vSel = document.getElementById('fil-variant');
   const cv = cSel.value, vv = vSel.value;
-  cSel.innerHTML = '<option value="">All colors</option>'   + allColors.map(c   => `<option>${c}</option>`).join('');
+  cSel.innerHTML = '<option value="">All colors</option>'   + allColors.map(c => `<option>${c}</option>`).join('');
   vSel.innerHTML = '<option value="">All variants</option>' + allVariants.map(v => `<option>${v}</option>`).join('');
   if (cv) cSel.value = cv;
   if (vv) vSel.value = vv;
@@ -484,21 +446,21 @@ function resetFilters() {
 }
 
 function getFilteredList() {
-  const seg = document.getElementById('fil-seg').value;
-  const style = document.getElementById('fil-style').value;
-  const size = document.getElementById('fil-size').value;
-  const price = document.getElementById('fil-price').value;
-  const color = document.getElementById('fil-color').value;
+  const seg     = document.getElementById('fil-seg').value;
+  const style   = document.getElementById('fil-style').value;
+  const size    = document.getElementById('fil-size').value;
+  const price   = document.getElementById('fil-price').value;
+  const color   = document.getElementById('fil-color').value;
   const variant = document.getElementById('fil-variant').value;
-  const q = document.getElementById('search-input').value.toLowerCase();
+  const q       = document.getElementById('search-input').value.toLowerCase();
   return products.filter(p => {
-    if (seg     && p.seg   !== seg)                         return false;
-    if (style   && p.style !== style)                       return false;
-    if (size    && p.size  !== size)                        return false;
-    if (price   && p.price !== price)                       return false;
-    if (color   && !p.colors.some(c => c.name === color))  return false;
-    if (variant && !p.variants.includes(variant))           return false;
-    if (q       && !p.name.toLowerCase().includes(q))      return false;
+    if (seg     && p.seg   !== seg)                        return false;
+    if (style   && p.style !== style)                      return false;
+    if (size    && p.size  !== size)                       return false;
+    if (price   && p.price !== price)                      return false;
+    if (color   && !p.colors.some(c => c.name === color)) return false;
+    if (variant && !p.variants.includes(variant))          return false;
+    if (q       && !p.name.toLowerCase().includes(q))     return false;
     return true;
   }).sort((a, b) => sortDir === 'az' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name));
 }
