@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/guimauve-product-app.html" }
+  ]
+}
