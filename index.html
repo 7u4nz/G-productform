@@ -33,9 +33,10 @@ textarea{resize:vertical;min-height:64px}
 .add-btn:hover{border-color:#aaa;color:#555}
 .remove-btn{width:26px;height:26px;border:none;background:transparent;color:#bbb;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:50%;transition:all 0.12s}
 .remove-btn:hover{background:#f5f5f5;color:#666}
-.submit-btn{width:100%;padding:11px;border:0.5px solid #1a1a1a;border-radius:9px;background:#1a1a1a;color:#fff;font-size:14px;font-weight:500;cursor:pointer;margin-top:1.25rem;transition:all 0.12s}
+.submit-btn{width:100%;padding:11px;border:0.5px solid #1a1a1a;border-radius:9px;background:#1a1a1a;color:#fff;font-size:14px;font-weight:500;cursor:pointer;margin-top:1.25rem;transition:all 0.12s;display:flex;align-items:center;justify-content:center;gap:8px}
 .submit-btn:hover{background:#333}
 .submit-btn:active{transform:scale(0.99)}
+.submit-btn:disabled{background:#aaa;border-color:#aaa;cursor:not-allowed}
 .section-title{font-size:14px;font-weight:500;margin-bottom:0.85rem;color:#1a1a1a}
 .divider{border:none;border-top:0.5px solid #f0f0f0;margin:1.25rem 0}
 .filters{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:0.85rem}
@@ -64,22 +65,52 @@ select:focus{border-color:#aaa}
 .prod-meta{font-size:12px;color:#bbb;margin-top:5px;line-height:1.5}
 .empty{text-align:center;padding:3rem 1rem;color:#aaa;font-size:14px}
 .count-badge{font-size:12px;color:#aaa;margin-bottom:8px}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:9px 18px;border-radius:9px;font-size:13px;opacity:0;pointer-events:none;transition:opacity 0.2s;z-index:100}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:9px 18px;border-radius:9px;font-size:13px;opacity:0;pointer-events:none;transition:opacity 0.2s;z-index:100;white-space:nowrap}
 .toast.show{opacity:1}
 .del-btn{padding:5px 10px;border:0.5px solid #e8e8e8;border-radius:7px;background:transparent;color:#aaa;font-size:11px;cursor:pointer;flex-shrink:0;transition:all 0.12s}
 .del-btn:hover{border-color:#fca5a5;color:#ef4444}
+.del-btn:disabled{opacity:0.4;cursor:not-allowed}
 .header-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
 .reset-btn{font-size:12px;color:#aaa;background:none;border:none;cursor:pointer;text-decoration:underline}
 .export-btn{padding:8px 14px;border:0.5px solid #e0e0e0;border-radius:8px;background:#fff;color:#555;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.12s;display:inline-flex;align-items:center;gap:6px}
 .export-btn:hover{border-color:#aaa;color:#1a1a1a}
 .top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+
+/* Setup banner */
+.setup-banner{background:#fffbeb;border:0.5px solid #fcd34d;border-radius:12px;padding:1.25rem;margin-bottom:1rem;font-size:13px;line-height:1.7;color:#92400e}
+.setup-banner strong{display:block;margin-bottom:6px;font-size:14px;color:#78350f}
+.setup-banner code{background:#fef3c7;padding:2px 7px;border-radius:5px;font-size:12px;font-family:monospace;word-break:break-all}
+.url-input-row{display:flex;gap:8px;margin-top:10px}
+.url-input-row input{flex:1;padding:8px 12px;border:0.5px solid #fcd34d;border-radius:8px;font-size:13px;outline:none;background:#fff}
+.url-save-btn{padding:8px 14px;border:none;border-radius:8px;background:#1a1a1a;color:#fff;font-size:13px;cursor:pointer;white-space:nowrap}
+.url-save-btn:hover{background:#333}
+
+/* Loading spinner */
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite}
+.spinner-dark{border-color:rgba(0,0,0,0.15);border-top-color:#555}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.loading-row{display:flex;align-items:center;justify-content:center;gap:8px;padding:2.5rem;color:#aaa;font-size:13px}
+.sync-indicator{font-size:11px;color:#aaa;display:flex;align-items:center;gap:5px}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;display:inline-block}
+.sync-dot.offline{background:#f59e0b}
 </style>
 </head>
 <body>
 <div class="app">
   <div class="brand">
     <h1>Guimauve</h1>
-    <p>Product data management</p>
+    <p>Product data management — <span id="sync-status" class="sync-indicator"><span class="sync-dot offline" id="sync-dot"></span><span id="sync-text">Connecting...</span></span></p>
+  </div>
+
+  <!-- SETUP BANNER (muncul jika belum ada URL) -->
+  <div class="setup-banner" id="setup-banner" style="display:none">
+    <strong>⚙️ Setup diperlukan — Hubungkan ke Google Sheets</strong>
+    Paste URL Web App dari Google Apps Script kamu di sini. Ikuti langkah di file <code>Code.gs</code> yang sudah diunduh, lalu deploy sebagai Web App dan salin URL-nya.
+    <div class="url-input-row">
+      <input type="text" id="gas-url-input" placeholder="https://script.google.com/macros/s/...../exec">
+      <button class="url-save-btn" onclick="saveGasUrl()">Simpan</button>
+    </div>
   </div>
 
   <div class="nav">
@@ -148,7 +179,7 @@ select:focus{border-color:#aaa}
       <div id="variant-list"></div>
       <button class="add-btn" onclick="addVariant()">+ Add variant</button>
 
-      <button class="submit-btn" onclick="saveProduct()">Save product</button>
+      <button class="submit-btn" id="save-btn" onclick="saveProduct()">Save product</button>
     </div>
   </div>
 
@@ -157,7 +188,10 @@ select:focus{border-color:#aaa}
     <div class="card" style="margin-bottom:1rem">
       <div class="header-row">
         <p style="font-size:14px;font-weight:500">Filters</p>
-        <button class="reset-btn" onclick="resetFilters()">Reset all</button>
+        <div style="display:flex;gap:10px;align-items:center">
+          <button class="reset-btn" onclick="resetFilters()">Reset all</button>
+          <button class="export-btn" style="padding:5px 10px;font-size:11px" onclick="fetchProducts()">↻ Refresh</button>
+        </div>
       </div>
       <div class="filters">
         <select id="fil-seg" onchange="renderList()">
@@ -208,18 +242,110 @@ select:focus{border-color:#aaa}
 <div class="toast" id="toast"></div>
 
 <script>
+// ============================================================
+// KONFIGURASI — Paste URL Web App GAS kamu di sini
+// atau isi melalui setup banner di atas
+// ============================================================
+let GAS_URL = localStorage.getItem('guimauve_gas_url') || '';
+
 let products = [];
 let sel = {seg:'',style:'',size:'',price:''};
 let sortDir = 'az';
 let colorIdx = 0;
 let variantIdx = 0;
+let isLoading = false;
 
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('DOMContentLoaded', () => {
+  addColor();
+  addVariant();
+  checkSetup();
+});
+
+function checkSetup() {
+  if (!GAS_URL) {
+    document.getElementById('setup-banner').style.display = 'block';
+    setSyncStatus(false, 'Not connected');
+  } else {
+    document.getElementById('setup-banner').style.display = 'none';
+    fetchProducts();
+  }
+}
+
+function saveGasUrl() {
+  const url = document.getElementById('gas-url-input').value.trim();
+  if (!url || !url.startsWith('https://script.google.com')) {
+    showToast('URL tidak valid. Harus diawali https://script.google.com');
+    return;
+  }
+  GAS_URL = url;
+  localStorage.setItem('guimauve_gas_url', url);
+  document.getElementById('setup-banner').style.display = 'none';
+  showToast('URL tersimpan!');
+  fetchProducts();
+}
+
+// ============================================================
+// SYNC STATUS
+// ============================================================
+function setSyncStatus(online, text) {
+  document.getElementById('sync-dot').className = 'sync-dot' + (online ? '' : ' offline');
+  document.getElementById('sync-text').textContent = text;
+}
+
+// ============================================================
+// API — FETCH PRODUCTS
+// ============================================================
+async function fetchProducts() {
+  if (!GAS_URL) return;
+  const el = document.getElementById('product-list');
+  el.innerHTML = '<div class="loading-row"><div class="spinner spinner-dark"></div> Loading from Google Sheets...</div>';
+  setSyncStatus(false, 'Loading...');
+
+  try {
+    const res = await fetch(GAS_URL + '?action=get', { method: 'GET' });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    products = data.products || [];
+    updateCountNav();
+    updateColorVariantFilters();
+    renderList();
+    setSyncStatus(true, 'Connected · ' + products.length + ' products');
+  } catch (err) {
+    el.innerHTML = '<div class="empty"><p style="font-size:28px;margin-bottom:10px">⚠️</p><p>Gagal memuat data.</p><p style="font-size:12px;margin-top:4px;color:#ccc">' + err.message + '</p></div>';
+    setSyncStatus(false, 'Connection error');
+  }
+}
+
+// ============================================================
+// API — SAVE PRODUCT
+// ============================================================
+async function apiAddProduct(payload) {
+  const params = new URLSearchParams({ action: 'add', ...payload });
+  const res = await fetch(GAS_URL + '?' + params.toString(), { method: 'GET' });
+  return await res.json();
+}
+
+// ============================================================
+// API — DELETE PRODUCT
+// ============================================================
+async function apiDeleteProduct(id) {
+  const params = new URLSearchParams({ action: 'delete', id });
+  const res = await fetch(GAS_URL + '?' + params.toString(), { method: 'GET' });
+  return await res.json();
+}
+
+// ============================================================
+// UI HELPERS
+// ============================================================
 function showPage(p) {
   document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(x => x.classList.remove('active'));
   document.getElementById('page-' + p).classList.add('active');
   document.querySelectorAll('.nav-btn')[p === 'add' ? 0 : 1].classList.add('active');
-  if (p === 'list') { renderList(); updateColorVariantFilters(); }
+  if (p === 'list') { fetchProducts(); }
 }
 
 function toggle(el, group) {
@@ -268,32 +394,69 @@ function getVariants() {
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2000);
+  setTimeout(() => t.classList.remove('show'), 2500);
 }
 
-function saveProduct() {
+// ============================================================
+// SAVE PRODUCT
+// ============================================================
+async function saveProduct() {
+  if (!GAS_URL) { showToast('Setup URL Google Apps Script dulu!'); return; }
   const name = document.getElementById('f-name').value.trim();
   if (!name) { showToast('Please enter a product name'); return; }
   if (!sel.seg) { showToast('Please select a market segment'); return; }
   if (!sel.size) { showToast('Please select a size'); return; }
   if (!sel.price) { showToast('Please select a price range'); return; }
 
-  products.push({
-    id: Date.now(),
-    name,
-    desc: document.getElementById('f-desc').value.trim(),
-    seg: sel.seg,
-    style: sel.style,
-    size: sel.size,
-    price: sel.price,
-    colors: getColors(),
-    variants: getVariants(),
-    date: new Date().toLocaleDateString('id-ID')
-  });
+  const colors = getColors();
+  const variants = getVariants();
 
-  updateCountNav();
-  resetForm();
-  showToast('Product saved!');
+  // Format: "name|hex,name|hex"
+  const colorsStr = colors.map(c => c.name + '|' + c.hex).join(',');
+  const variantsStr = variants.join(',');
+
+  const btn = document.getElementById('save-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Saving...';
+
+  try {
+    const result = await apiAddProduct({
+      name,
+      desc: document.getElementById('f-desc').value.trim(),
+      seg: sel.seg,
+      style: sel.style,
+      size: sel.size,
+      price: sel.price,
+      colors: colorsStr,
+      variants: variantsStr
+    });
+
+    if (result.error) throw new Error(result.error);
+
+    // Tambah ke local cache juga
+    products.push({
+      id: result.id,
+      name,
+      desc: document.getElementById('f-desc').value.trim(),
+      seg: sel.seg,
+      style: sel.style,
+      size: sel.size,
+      price: sel.price,
+      colors,
+      variants,
+      date: result.date
+    });
+
+    updateCountNav();
+    resetForm();
+    showToast('✓ Product saved to Google Sheets!');
+    setSyncStatus(true, 'Connected · ' + products.length + ' products');
+  } catch (err) {
+    showToast('Error: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Save product';
+  }
 }
 
 function resetForm() {
@@ -303,6 +466,8 @@ function resetForm() {
   sel = { seg: '', style: '', size: '', price: '' };
   document.getElementById('color-list').innerHTML = '';
   document.getElementById('variant-list').innerHTML = '';
+  addColor();
+  addVariant();
 }
 
 function updateCountNav() {
@@ -365,11 +530,11 @@ function renderList() {
   lbl.textContent = list.length + ' product' + (list.length !== 1 ? 's' : '') + ' found';
 
   if (!products.length) {
-    el.innerHTML = '<div class="empty"><p style="font-size:32px;margin-bottom:10px">&#x1F6CD;</p><p>No products yet.</p><p style="font-size:12px;margin-top:4px;color:#ccc">Add your first product from the Add product tab.</p></div>';
+    el.innerHTML = '<div class="empty"><p style="font-size:32px;margin-bottom:10px">🛍️</p><p>No products yet.</p><p style="font-size:12px;margin-top:4px;color:#ccc">Add your first product from the Add product tab.</p></div>';
     return;
   }
   if (!list.length) {
-    el.innerHTML = '<div class="empty"><p style="font-size:28px;margin-bottom:10px">&#x1F50D;</p><p>No products match your filters.</p></div>';
+    el.innerHTML = '<div class="empty"><p style="font-size:28px;margin-bottom:10px">🔍</p><p>No products match your filters.</p></div>';
     return;
   }
 
@@ -394,17 +559,29 @@ function renderList() {
         <p class="prod-meta" style="margin-top:6px">${colorNames}${variantStr ? ' &nbsp;|&nbsp; ' + variantStr : ''}</p>
         <p class="prod-meta" style="margin-top:2px">Added ${p.date}</p>
       </div>
-      <button class="del-btn" onclick="deleteProduct(${p.id})">Remove</button>
+      <button class="del-btn" id="del-${p.id}" onclick="deleteProduct('${p.id}')">Remove</button>
     </div>`;
   }).join('');
 }
 
-function deleteProduct(id) {
-  products = products.filter(p => p.id !== id);
-  updateCountNav();
-  updateColorVariantFilters();
-  renderList();
-  showToast('Product removed');
+async function deleteProduct(id) {
+  if (!GAS_URL) return;
+  const btn = document.getElementById('del-' + id);
+  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+
+  try {
+    const result = await apiDeleteProduct(id);
+    if (result.error) throw new Error(result.error);
+    products = products.filter(p => p.id !== id);
+    updateCountNav();
+    updateColorVariantFilters();
+    renderList();
+    showToast('Product removed');
+    setSyncStatus(true, 'Connected · ' + products.length + ' products');
+  } catch (err) {
+    showToast('Error: ' + err.message);
+    if (btn) { btn.disabled = false; btn.textContent = 'Remove'; }
+  }
 }
 
 function exportExcel() {
@@ -429,9 +606,6 @@ function exportExcel() {
   XLSX.writeFile(wb, 'Guimauve_Products.xlsx');
   showToast('Exported to Excel!');
 }
-
-addColor();
-addVariant();
 </script>
 </body>
 </html>
