@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guimauve — Product Manager</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fafafa;color:#1a1a1a;min-height:100vh}
+.app{max-width:780px;margin:0 auto;padding:2rem 1rem}
+.brand{margin-bottom:1.5rem}
+.brand h1{font-size:20px;font-weight:600;color:#1a1a1a}
+.brand p{font-size:13px;color:#888;margin-top:2px}
+.nav{display:flex;gap:4px;margin-bottom:1.5rem;background:#f0f0f0;border:0.5px solid #e0e0e0;border-radius:12px;padding:4px}
+.nav-btn{flex:1;padding:8px 12px;border:none;background:transparent;border-radius:9px;font-size:13px;font-weight:400;color:#666;cursor:pointer;transition:all 0.15s}
+.nav-btn.active{background:#fff;color:#1a1a1a;font-weight:500;border:0.5px solid #ddd;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+.card{background:#fff;border:0.5px solid #e8e8e8;border-radius:14px;padding:1.5rem}
+.page{display:none}.page.active{display:block}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group.full{grid-column:1/-1}
+label{font-size:11px;font-weight:600;color:#999;letter-spacing:0.06em;text-transform:uppercase}
+input[type=text],textarea{width:100%;padding:9px 12px;border:0.5px solid #e0e0e0;border-radius:8px;font-size:14px;background:#fff;color:#1a1a1a;outline:none;font-family:inherit;transition:border-color 0.12s}
+input[type=text]:focus,textarea:focus{border-color:#aaa}
+textarea{resize:vertical;min-height:64px}
+.chip-group{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:6px 14px;border:0.5px solid #e0e0e0;border-radius:20px;font-size:13px;cursor:pointer;background:#fff;color:#666;transition:all 0.12s;user-select:none}
+.chip:hover{border-color:#bbb;color:#333}
+.chip.selected{background:#1a1a1a;border-color:#1a1a1a;color:#fff}
+.color-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.add-btn{padding:7px 14px;border:0.5px dashed #d0d0d0;border-radius:8px;background:transparent;color:#888;font-size:13px;cursor:pointer;transition:all 0.12s}
+.add-btn:hover{border-color:#aaa;color:#555}
+.remove-btn{width:26px;height:26px;border:none;background:transparent;color:#bbb;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:50%;transition:all 0.12s}
+.remove-btn:hover{background:#f5f5f5;color:#666}
+.submit-btn{width:100%;padding:11px;border:0.5px solid #1a1a1a;border-radius:9px;background:#1a1a1a;color:#fff;font-size:14px;font-weight:500;cursor:pointer;margin-top:1.25rem;transition:all 0.12s}
+.submit-btn:hover{background:#333}
+.submit-btn:active{transform:scale(0.99)}
+.section-title{font-size:14px;font-weight:500;margin-bottom:0.85rem;color:#1a1a1a}
+.divider{border:none;border-top:0.5px solid #f0f0f0;margin:1.25rem 0}
+.filters{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:0.85rem}
+select{width:100%;padding:8px 10px;border:0.5px solid #e0e0e0;border-radius:8px;font-size:13px;background:#fff;color:#555;outline:none;font-family:inherit;cursor:pointer;transition:border-color 0.12s}
+select:focus{border-color:#aaa}
+.search-row{display:flex;gap:8px;margin-bottom:1rem;align-items:center}
+.search-wrap{flex:1;position:relative}
+.search-wrap input{padding-left:34px}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#bbb;font-size:14px;pointer-events:none}
+.sort-group{display:flex;gap:4px}
+.sort-btn{padding:8px 11px;border:0.5px solid #e0e0e0;border-radius:8px;background:#fff;font-size:12px;color:#666;cursor:pointer;white-space:nowrap;transition:all 0.12s}
+.sort-btn.active{border-color:#1a1a1a;color:#1a1a1a;font-weight:500}
+.product-grid{display:flex;flex-direction:column;gap:8px}
+.product-card{background:#fff;border:0.5px solid #e8e8e8;border-radius:12px;padding:1rem 1.25rem;display:flex;align-items:flex-start;gap:1rem;transition:border-color 0.12s}
+.product-card:hover{border-color:#ccc}
+.prod-color-dot{width:38px;height:38px;border-radius:50%;border:0.5px solid #e8e8e8;flex-shrink:0;margin-top:2px}
+.prod-info{flex:1;min-width:0}
+.prod-name{font-size:14px;font-weight:500;margin-bottom:4px}
+.prod-desc{font-size:13px;color:#888;margin-bottom:8px;line-height:1.45}
+.tags{display:flex;flex-wrap:wrap;gap:5px}
+.tag{font-size:11px;padding:3px 9px;border-radius:20px}
+.tag-seg{background:#e8f0fe;color:#1a56db}
+.tag-style{background:#f4f4f4;color:#555;border:0.5px solid #e8e8e8}
+.tag-size{background:#fef3c7;color:#92400e}
+.tag-price{background:#d1fae5;color:#065f46}
+.prod-meta{font-size:12px;color:#bbb;margin-top:5px;line-height:1.5}
+.empty{text-align:center;padding:3rem 1rem;color:#aaa;font-size:14px}
+.count-badge{font-size:12px;color:#aaa;margin-bottom:8px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:9px 18px;border-radius:9px;font-size:13px;opacity:0;pointer-events:none;transition:opacity 0.2s;z-index:100}
+.toast.show{opacity:1}
+.del-btn{padding:5px 10px;border:0.5px solid #e8e8e8;border-radius:7px;background:transparent;color:#aaa;font-size:11px;cursor:pointer;flex-shrink:0;transition:all 0.12s}
+.del-btn:hover{border-color:#fca5a5;color:#ef4444}
+.header-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.reset-btn{font-size:12px;color:#aaa;background:none;border:none;cursor:pointer;text-decoration:underline}
+.export-btn{padding:8px 14px;border:0.5px solid #e0e0e0;border-radius:8px;background:#fff;color:#555;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.12s;display:inline-flex;align-items:center;gap:6px}
+.export-btn:hover{border-color:#aaa;color:#1a1a1a}
+.top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="brand">
+    <h1>Guimauve</h1>
+    <p>Product data management</p>
+  </div>
+
+  <div class="nav">
+    <button class="nav-btn active" onclick="showPage('add')">Add product</button>
+    <button class="nav-btn" onclick="showPage('list')">Documented products <span id="count-nav"></span></button>
+  </div>
+
+  <!-- ADD PAGE -->
+  <div id="page-add" class="page active">
+    <div class="card">
+      <p class="section-title">Product details</p>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Product name</label>
+          <input type="text" id="f-name" placeholder="e.g. Mini shoulder bag">
+        </div>
+        <div class="form-group full">
+          <label>Description (optional)</label>
+          <textarea id="f-desc" placeholder="Brief description..."></textarea>
+        </div>
+      </div>
+
+      <hr class="divider">
+      <p class="section-title">Market segmentation</p>
+      <div class="chip-group" id="chips-seg">
+        <div class="chip" data-val="Luxury" onclick="toggle(this,'seg')">Luxury</div>
+        <div class="chip" data-val="Milenial" onclick="toggle(this,'seg')">Milenial</div>
+        <div class="chip" data-val="Profesional" onclick="toggle(this,'seg')">Profesional</div>
+        <div class="chip" data-val="Anak-anak" onclick="toggle(this,'seg')">Anak-anak</div>
+        <div class="chip" data-val="Limited Edition" onclick="toggle(this,'seg')">Limited edition</div>
+      </div>
+
+      <hr class="divider">
+      <p class="section-title">Style</p>
+      <div class="chip-group" id="chips-style">
+        <div class="chip" data-val="Smart Casual" onclick="toggle(this,'style')">Smart casual</div>
+        <div class="chip" data-val="Formal" onclick="toggle(this,'style')">Formal</div>
+        <div class="chip" data-val="Party/Evening" onclick="toggle(this,'style')">Party / evening</div>
+        <div class="chip" data-val="Versatile" onclick="toggle(this,'style')">Versatile</div>
+      </div>
+
+      <hr class="divider">
+      <p class="section-title">Size</p>
+      <div class="chip-group" id="chips-size">
+        <div class="chip" data-val="Small" onclick="toggle(this,'size')">Small</div>
+        <div class="chip" data-val="Medium" onclick="toggle(this,'size')">Medium</div>
+        <div class="chip" data-val="Large" onclick="toggle(this,'size')">Large</div>
+        <div class="chip" data-val="Extra Large" onclick="toggle(this,'size')">Extra large</div>
+      </div>
+
+      <hr class="divider">
+      <p class="section-title">Price range</p>
+      <div class="chip-group" id="chips-price">
+        <div class="chip" data-val="Low" onclick="toggle(this,'price')">Low</div>
+        <div class="chip" data-val="Mid" onclick="toggle(this,'price')">Mid</div>
+        <div class="chip" data-val="High" onclick="toggle(this,'price')">High</div>
+      </div>
+
+      <hr class="divider">
+      <p class="section-title">Colors</p>
+      <div id="color-list"></div>
+      <button class="add-btn" onclick="addColor()">+ Add color</button>
+
+      <hr class="divider">
+      <p class="section-title">Variants</p>
+      <div id="variant-list"></div>
+      <button class="add-btn" onclick="addVariant()">+ Add variant</button>
+
+      <button class="submit-btn" onclick="saveProduct()">Save product</button>
+    </div>
+  </div>
+
+  <!-- LIST PAGE -->
+  <div id="page-list" class="page">
+    <div class="card" style="margin-bottom:1rem">
+      <div class="header-row">
+        <p style="font-size:14px;font-weight:500">Filters</p>
+        <button class="reset-btn" onclick="resetFilters()">Reset all</button>
+      </div>
+      <div class="filters">
+        <select id="fil-seg" onchange="renderList()">
+          <option value="">All segments</option>
+          <option>Luxury</option><option>Milenial</option><option>Profesional</option>
+          <option>Anak-anak</option><option>Limited Edition</option>
+        </select>
+        <select id="fil-style" onchange="renderList()">
+          <option value="">All styles</option>
+          <option>Smart Casual</option><option>Formal</option>
+          <option>Party/Evening</option><option>Versatile</option>
+        </select>
+        <select id="fil-size" onchange="renderList()">
+          <option value="">All sizes</option>
+          <option>Small</option><option>Medium</option><option>Large</option><option>Extra Large</option>
+        </select>
+        <select id="fil-price" onchange="renderList()">
+          <option value="">All prices</option>
+          <option>Low</option><option>Mid</option><option>High</option>
+        </select>
+        <select id="fil-color" onchange="renderList()">
+          <option value="">All colors</option>
+        </select>
+        <select id="fil-variant" onchange="renderList()">
+          <option value="">All variants</option>
+        </select>
+      </div>
+      <div class="search-row">
+        <div class="search-wrap">
+          <span class="search-icon">&#128269;</span>
+          <input type="text" id="search-input" placeholder="Search product name..." oninput="renderList()">
+        </div>
+        <div class="sort-group">
+          <button class="sort-btn active" id="sort-az" onclick="setSort('az')">A → Z</button>
+          <button class="sort-btn" id="sort-za" onclick="setSort('za')">Z → A</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="top-bar">
+      <div id="count-label" class="count-badge"></div>
+      <button class="export-btn" onclick="exportExcel()">&#x2193; Export to Excel</button>
+    </div>
+    <div id="product-list" class="product-grid"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let products = [];
+let sel = {seg:'',style:'',size:'',price:''};
+let sortDir = 'az';
+let colorIdx = 0;
+let variantIdx = 0;
+
+function showPage(p) {
+  document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(x => x.classList.remove('active'));
+  document.getElementById('page-' + p).classList.add('active');
+  document.querySelectorAll('.nav-btn')[p === 'add' ? 0 : 1].classList.add('active');
+  if (p === 'list') { renderList(); updateColorVariantFilters(); }
+}
+
+function toggle(el, group) {
+  const wasSelected = el.classList.contains('selected');
+  document.querySelectorAll('#chips-' + group + ' .chip').forEach(c => c.classList.remove('selected'));
+  if (!wasSelected) { el.classList.add('selected'); sel[group] = el.dataset.val; }
+  else sel[group] = '';
+}
+
+function addColor() {
+  const id = 'c' + colorIdx++;
+  const row = document.createElement('div');
+  row.className = 'color-row'; row.id = id;
+  row.innerHTML = `
+    <input type="color" value="#f4c2c2" style="width:32px;height:32px;padding:2px;border:0.5px solid #e0e0e0;border-radius:50%;cursor:pointer;background:none">
+    <input type="text" placeholder="Color name, e.g. Dusty Rose" style="flex:1">
+    <button class="remove-btn" onclick="document.getElementById('${id}').remove()">&#x2715;</button>`;
+  document.getElementById('color-list').appendChild(row);
+}
+
+function addVariant() {
+  const id = 'v' + variantIdx++;
+  const row = document.createElement('div');
+  row.className = 'color-row'; row.id = id;
+  row.innerHTML = `
+    <input type="text" placeholder="Variant name, e.g. Quilted" style="flex:1">
+    <button class="remove-btn" onclick="document.getElementById('${id}').remove()">&#x2715;</button>`;
+  document.getElementById('variant-list').appendChild(row);
+}
+
+function getColors() {
+  return Array.from(document.querySelectorAll('#color-list .color-row')).map(row => {
+    const picker = row.querySelector('input[type="color"]');
+    const name = row.querySelector('input[type="text"]');
+    return { hex: picker ? picker.value : '#cccccc', name: name ? name.value.trim() : '' };
+  }).filter(c => c.name);
+}
+
+function getVariants() {
+  return Array.from(document.querySelectorAll('#variant-list .color-row')).map(row => {
+    const inp = row.querySelector('input[type="text"]');
+    return inp ? inp.value.trim() : '';
+  }).filter(v => v);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function saveProduct() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { showToast('Please enter a product name'); return; }
+  if (!sel.seg) { showToast('Please select a market segment'); return; }
+  if (!sel.size) { showToast('Please select a size'); return; }
+  if (!sel.price) { showToast('Please select a price range'); return; }
+
+  products.push({
+    id: Date.now(),
+    name,
+    desc: document.getElementById('f-desc').value.trim(),
+    seg: sel.seg,
+    style: sel.style,
+    size: sel.size,
+    price: sel.price,
+    colors: getColors(),
+    variants: getVariants(),
+    date: new Date().toLocaleDateString('id-ID')
+  });
+
+  updateCountNav();
+  resetForm();
+  showToast('Product saved!');
+}
+
+function resetForm() {
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-desc').value = '';
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+  sel = { seg: '', style: '', size: '', price: '' };
+  document.getElementById('color-list').innerHTML = '';
+  document.getElementById('variant-list').innerHTML = '';
+}
+
+function updateCountNav() {
+  const n = products.length;
+  document.getElementById('count-nav').textContent = n ? '(' + n + ')' : '';
+}
+
+function updateColorVariantFilters() {
+  const allColors = [...new Set(products.flatMap(p => p.colors.map(c => c.name)))].filter(Boolean);
+  const allVariants = [...new Set(products.flatMap(p => p.variants))].filter(Boolean);
+  const cSel = document.getElementById('fil-color');
+  const vSel = document.getElementById('fil-variant');
+  const cv = cSel.value, vv = vSel.value;
+  cSel.innerHTML = '<option value="">All colors</option>' + allColors.map(c => `<option>${c}</option>`).join('');
+  vSel.innerHTML = '<option value="">All variants</option>' + allVariants.map(v => `<option>${v}</option>`).join('');
+  if (cv) cSel.value = cv;
+  if (vv) vSel.value = vv;
+}
+
+function setSort(dir) {
+  sortDir = dir;
+  document.getElementById('sort-az').classList.toggle('active', dir === 'az');
+  document.getElementById('sort-za').classList.toggle('active', dir === 'za');
+  renderList();
+}
+
+function resetFilters() {
+  ['fil-seg', 'fil-style', 'fil-size', 'fil-price', 'fil-color', 'fil-variant'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('search-input').value = '';
+  renderList();
+}
+
+function getFilteredList() {
+  const seg = document.getElementById('fil-seg').value;
+  const style = document.getElementById('fil-style').value;
+  const size = document.getElementById('fil-size').value;
+  const price = document.getElementById('fil-price').value;
+  const color = document.getElementById('fil-color').value;
+  const variant = document.getElementById('fil-variant').value;
+  const q = document.getElementById('search-input').value.toLowerCase();
+
+  return products.filter(p => {
+    if (seg && p.seg !== seg) return false;
+    if (style && p.style !== style) return false;
+    if (size && p.size !== size) return false;
+    if (price && p.price !== price) return false;
+    if (color && !p.colors.some(c => c.name === color)) return false;
+    if (variant && !p.variants.includes(variant)) return false;
+    if (q && !p.name.toLowerCase().includes(q)) return false;
+    return true;
+  }).sort((a, b) => sortDir === 'az' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name));
+}
+
+function renderList() {
+  const list = getFilteredList();
+  const el = document.getElementById('product-list');
+  const lbl = document.getElementById('count-label');
+  lbl.textContent = list.length + ' product' + (list.length !== 1 ? 's' : '') + ' found';
+
+  if (!products.length) {
+    el.innerHTML = '<div class="empty"><p style="font-size:32px;margin-bottom:10px">&#x1F6CD;</p><p>No products yet.</p><p style="font-size:12px;margin-top:4px;color:#ccc">Add your first product from the Add product tab.</p></div>';
+    return;
+  }
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><p style="font-size:28px;margin-bottom:10px">&#x1F50D;</p><p>No products match your filters.</p></div>';
+    return;
+  }
+
+  el.innerHTML = list.map(p => {
+    const mainColor = p.colors[0];
+    const dotStyle = mainColor ? 'background:' + mainColor.hex : 'background:#f0f0f0';
+    const colorNames = p.colors.map(c =>
+      `<span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c.hex};border:0.5px solid #e8e8e8"></span>${c.name}</span>`
+    ).join(' · ');
+    const variantStr = p.variants.join(', ');
+    return `<div class="product-card">
+      <div class="prod-color-dot" style="${dotStyle}"></div>
+      <div class="prod-info">
+        <p class="prod-name">${p.name}</p>
+        ${p.desc ? `<p class="prod-desc">${p.desc}</p>` : ''}
+        <div class="tags">
+          <span class="tag tag-seg">${p.seg}</span>
+          ${p.style ? `<span class="tag tag-style">${p.style}</span>` : ''}
+          <span class="tag tag-size">${p.size}</span>
+          <span class="tag tag-price">${p.price} price</span>
+        </div>
+        <p class="prod-meta" style="margin-top:6px">${colorNames}${variantStr ? ' &nbsp;|&nbsp; ' + variantStr : ''}</p>
+        <p class="prod-meta" style="margin-top:2px">Added ${p.date}</p>
+      </div>
+      <button class="del-btn" onclick="deleteProduct(${p.id})">Remove</button>
+    </div>`;
+  }).join('');
+}
+
+function deleteProduct(id) {
+  products = products.filter(p => p.id !== id);
+  updateCountNav();
+  updateColorVariantFilters();
+  renderList();
+  showToast('Product removed');
+}
+
+function exportExcel() {
+  if (!products.length) { showToast('No products to export'); return; }
+  const rows = products.map(p => ({
+    'Product Name': p.name,
+    'Description': p.desc,
+    'Segment': p.seg,
+    'Style': p.style,
+    'Size': p.size,
+    'Price Range': p.price,
+    'Colors': p.colors.map(c => c.name + ' (' + c.hex + ')').join(', '),
+    'Color Hex Codes': p.colors.map(c => c.hex).join(', '),
+    'Variants': p.variants.join(', '),
+    'Date Added': p.date
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const colWidths = [24,30,14,14,12,12,30,24,24,14];
+  ws['!cols'] = colWidths.map(w => ({ wch: w }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Products');
+  XLSX.writeFile(wb, 'Guimauve_Products.xlsx');
+  showToast('Exported to Excel!');
+}
+
+addColor();
+addVariant();
+</script>
+</body>
+</html>
